@@ -14,21 +14,21 @@ clean:
 	docker compose down -v --remove-orphans
 
 migrate:
-	docker compose exec api alembic upgrade head
+	docker compose exec backend alembic upgrade head
 
 migrate-down:
-	docker compose exec api alembic downgrade -1
+	docker compose exec backend alembic downgrade -1
 
 # Equivalent of: typeorm:generate migrations/name
 # Usage: make migrate-gen msg="add_user_preferences"
 migrate-gen:
-	docker compose exec api alembic revision --autogenerate -m "$(msg)"
+	docker compose exec backend alembic revision --autogenerate -m "$(msg)"
 
 migrate-status:
-	docker compose exec api alembic current
+	docker compose exec backend alembic current
 
 migrate-history:
-	docker compose exec api alembic history --verbose
+	docker compose exec backend alembic history --verbose
 
 # Workers
 worker:
@@ -39,7 +39,7 @@ beat:
 
 # Testing
 test:
-	docker compose exec api pytest tests/ -v
+	docker compose exec backend pytest tests/ -v
 
 test-local:
 	pytest tests/ -v
@@ -49,7 +49,7 @@ logs:
 	docker compose logs -f
 
 logs-api:
-	docker compose logs -f api
+	docker compose logs -f backend
 
 logs-worker:
 	docker compose logs -f worker
@@ -60,7 +60,7 @@ bash:
 	docker exec -it backend bash
 
 shell:
-	docker compose exec api python
+	docker compose exec backend python
 
 lint:
 	ruff check app/ tests/

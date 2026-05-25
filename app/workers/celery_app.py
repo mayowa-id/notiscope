@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 import redis
 from celery import Celery
 from celery.utils.log import get_task_logger
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import get_settings
 from app.core.database import SessionLocal
@@ -27,6 +27,8 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    # Silence Celery 6.0 deprecation warning — explicitly opt in to retry on startup
+    broker_connection_retry_on_startup=True,
     # Reliability settings
     task_acks_late=True,           # re-queue task if worker crashes mid-execution
     task_reject_on_worker_lost=True,
@@ -148,16 +150,18 @@ def send_notification(self, notification_id: str, idempotency_key: str) -> dict:
             }
 
             # Step 5b: write idempotency key record
-            stmt = pg_insert(IdempotencyKey).values(
-                key=idempotency_key,
-                notification_id=notification_id,
-                cached_response=cached_response,
-                expires_at=datetime.now(timezone.utc)
-                + timedelta(hours=settings.idempotency_key_ttl_hours),
-            )
-            stmt = stmt.on_conflict_do_nothing(index_elements=["key"])
-            db.execute(stmt)
-            db.commit()
+            try:
+                idemp_key = IdempotencyKey(
+                    key=idempotency_key,
+                    notification_id=notification_id,
+                    cached_response=cached_response,
+                    expires_at=datetime.now(timezone.utc)
+                    + timedelta(hours=settings.idempotency_key_ttl_hours),
+                )
+                db.add(idemp_key)
+                db.commit()
+            except IntegrityError:
+                db.rollback()
 
             logger.info(
                 "task_complete",

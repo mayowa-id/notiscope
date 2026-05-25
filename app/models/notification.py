@@ -1,5 +1,4 @@
-from sqlalchemy import String, Text, Integer
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Text, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, generate_uuid
@@ -30,7 +29,7 @@ class Notification(Base, TimestampMixin):
         String(20), default=NotificationStatus.PENDING, nullable=False, index=True
     )
     provider_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    provider_response: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    provider_response: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 

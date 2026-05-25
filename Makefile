@@ -57,7 +57,7 @@ logs-worker:
 # Dev utilities
 # Equivalent of: docker exec -it backend bash
 bash:
-	docker exec -it notiscope_api bash
+	docker exec -it backend bash
 
 shell:
 	docker compose exec api python

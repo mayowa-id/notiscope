@@ -1,7 +1,6 @@
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import String, ForeignKey, DateTime
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -18,7 +17,7 @@ class IdempotencyKey(Base):
     notification_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False
     )
-    cached_response: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    cached_response: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

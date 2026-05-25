@@ -66,7 +66,7 @@ Any notification that exhausts all retries across both providers lands here. The
 
 ### notifications
 | Column | Type | Notes |
-|---|---|---|
+
 | id | UUID | Primary key |
 | recipient_email | VARCHAR | Recipient address |
 | subject | VARCHAR | Email subject |
@@ -79,7 +79,7 @@ Any notification that exhausts all retries across both providers lands here. The
 
 ### idempotency_keys
 | Column | Type | Notes |
-|---|---|---|
+
 | id | UUID | Primary key |
 | idempotency_key | VARCHAR | Unique constraint |
 | notification_id | UUID | Foreign key → notifications.id |
@@ -105,7 +105,7 @@ The provider manager tries SendGrid first. On any failure — timeout, rate limi
 ## Failure Scenarios
 
 | Scenario | System behaviour |
-|---|---|
+
 | SendGrid is down | Provider manager falls back to SES automatically |
 | Both providers are down | Worker retries with exponential backoff, then routes to DLQ |
 | Worker crashes mid-send | Notification stays in processing, recovery job re-queues it, idempotency prevents double send |
@@ -119,7 +119,7 @@ The provider manager tries SendGrid first. On any failure — timeout, rate limi
 ## Tech Stack
 
 | Layer | Technology | Reason |
-|---|---|---|
+
 | API | FastAPI | Async, typed, fast |
 | ORM | SQLAlchemy | Mature, migration-friendly |
 | Migrations | Alembic | Pairs with SQLAlchemy |

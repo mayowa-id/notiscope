@@ -18,3 +18,5 @@ celerybeat.pid
 *.log
 .DS_Store
 Thumbs.db
+notiscope-key.pem
+

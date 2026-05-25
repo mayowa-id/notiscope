@@ -1,4 +1,4 @@
-.PHONY: dev stop migrate worker beat test logs shell clean
+.PHONY: dev dev-d stop clean migrate migrate-down migrate-gen migrate-status migrate-history worker beat test test-local logs logs-api logs-worker shell bash lint fmt
 
 #  Infrastructure 
 dev:
@@ -13,16 +13,22 @@ stop:
 clean:
 	docker compose down -v --remove-orphans
 
-# Database
 migrate:
 	docker compose exec api alembic upgrade head
 
 migrate-down:
 	docker compose exec api alembic downgrade -1
 
+# Equivalent of: typeorm:generate migrations/name
+# Usage: make migrate-gen msg="add_user_preferences"
 migrate-gen:
-	@read -p "Migration message: " msg; \
-	docker compose exec api alembic revision --autogenerate -m "$$msg"
+	docker compose exec api alembic revision --autogenerate -m "$(msg)"
+
+migrate-status:
+	docker compose exec api alembic current
+
+migrate-history:
+	docker compose exec api alembic history --verbose
 
 # Workers
 worker:
@@ -49,6 +55,10 @@ logs-worker:
 	docker compose logs -f worker
 
 # Dev utilities
+# Equivalent of: docker exec -it backend bash
+bash:
+	docker exec -it notiscope_api bash
+
 shell:
 	docker compose exec api python
 

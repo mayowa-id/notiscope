@@ -1,6 +1,6 @@
 # Notiscope
 
-Notiscope is a highly reliable, asynchronous notification system designed for 1M+ users. It handles email delivery with built-in idempotency (no duplicate sends), automatic retries with exponential backoff, provider fallback routing (AWS SES → Postmark), and a Dead Letter Queue (DLQ) for unprocessable messages.
+Notiscope is an asynchronous notification system designed for 1M+ users. It handles email delivery with built-in idempotency (no duplicate sends), automatic retries with exponential backoff, provider fallback routing (AWS SES → Postmark), and a Dead Letter Queue (DLQ) for unprocessable messages.
 
 ## Architecture
 

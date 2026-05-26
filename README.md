@@ -1,22 +1,50 @@
 # Notiscope
 
-Notiscope is a highly reliable, asynchronous notification system capable of processing millions of messages. It handles email delivery with built-in idempotency (no duplicate sends), automatic retries, provider fallback routing (SendGrid → AWS SES), and a Dead Letter Queue (DLQ) for unprocessable messages.
+Notiscope is a highly reliable, asynchronous notification system designed for 1M+ users. It handles email delivery with built-in idempotency (no duplicate sends), automatic retries with exponential backoff, provider fallback routing (AWS SES → Postmark), and a Dead Letter Queue (DLQ) for unprocessable messages.
 
 ## Architecture
 
-![Notiscope Architecture](C:\Users\NEW USER\.gemini\antigravity-ide\brain\588145e3-cbda-46ea-83b6-3a72fc3735aa\notiscope_architecture_1779706645728.png)
+```
+Client (POST /notify)
+    |
+    v
+[FastAPI API] ── writes idempotency key ──> [PostgreSQL]
+    |
+    v  (enqueue task)
+[Redis Queue]
+    |
+    v  (dequeue + process)
+[Celery Worker]
+    |
+    ├── Try AWS SES (primary)
+    |       |
+    |       ├── Success --> Update DB (status=sent)
+    |       |
+    |       └── Failure --> Fallback
+    |                         |
+    |                         v
+    |                   Try Postmark (fallback)
+    |                         |
+    |                         ├── Success --> Update DB (status=sent)
+    |                         |
+    |                         └── Failure --> Retry (exponential backoff + jitter)
+    |                                             |
+    |                                             └── Max retries exceeded --> DLQ
+    v
+[Celery Beat] ── scans DLQ every 5 min ──> Alerts on stuck notifications
+```
 
-Read the full system design in the [Technical Specification](docs/tech-spec.md) (or [View on Notion/Gist](your-link-here)).
+Read the full system design in the [Technical Specification](tech-spec.md).
 
-## Live Demo
+## Live API
 
-**API Base URL:** `https://notiscope.vercel.app` *(Replace with your actual Vercel URL)*
+**Base URL:** `http://13.60.84.255:8000`
 
-> **Note on Vercel:** Vercel is a serverless platform, which means it runs the FastAPI endpoint perfectly to accept requests and queue them. However, to actually process the queue and send the emails, the Celery `worker` and `beat` processes need to be running (either locally or on a container platform like Railway/Fly.io).
+**Swagger Docs:** [http://13.60.84.255:8000/docs](http://13.60.84.255:8000/docs)
+
+The API is deployed on an AWS EC2 instance running the full Docker Compose stack (FastAPI + Celery Worker + Celery Beat + PostgreSQL 18 + Redis 7).
 
 ## Quick Start (Local Development)
-
-The easiest way to run the full stack (FastAPI, Celery Worker, Celery Beat, Redis, PostgreSQL) is using Docker Compose.
 
 **1. Clone the repository**
 ```bash
@@ -28,13 +56,13 @@ cd notiscope
 ```bash
 cp .env.example .env
 ```
-*Fill in your `SENDGRID_API_KEY` and `AWS_ACCESS_KEY_ID` if you want real emails to send.*
+Fill in your `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `POSTMARK_SERVER_TOKEN` to enable email delivery.
 
 **3. Start the application**
 ```bash
 docker compose up --build
 ```
-*The database migrations will run automatically on startup.*
+Database migrations run automatically on startup via the entrypoint script.
 
 The API will be available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
@@ -46,11 +74,14 @@ The API will be available at [http://localhost:8000/docs](http://localhost:8000/
 | `REDIS_URL` | Yes | Redis connection string | `redis://redis:6379/0` |
 | `CELERY_BROKER_URL` | Yes | Celery message broker | `redis://redis:6379/0` |
 | `CELERY_RESULT_BACKEND` | Yes | Celery result store | `redis://redis:6379/1` |
-| `SENDGRID_API_KEY` | No* | Primary email provider API key | `SG.xxxxxxxxxx` |
-| `AWS_ACCESS_KEY_ID` | No* | Fallback provider AWS key | `AKIA...` |
-| `AWS_SECRET_ACCESS_KEY` | No* | Fallback provider AWS secret | `...` |
+| `AWS_ACCESS_KEY_ID` | Yes | AWS SES access key (primary provider) | `AKIA...` |
+| `AWS_SECRET_ACCESS_KEY` | Yes | AWS SES secret key | `...` |
+| `AWS_REGION` | Yes | AWS region for SES | `eu-north-1` |
+| `SES_FROM_EMAIL` | Yes | Verified sender email for SES | `noreply@yourdomain.com` |
+| `POSTMARK_SERVER_TOKEN` | No* | Postmark API token (fallback provider) | `xxxx-xxxx-xxxx` |
+| `POSTMARK_FROM_EMAIL` | No* | Verified sender email for Postmark | `noreply@yourdomain.com` |
 
-*\*If provider keys are missing, the worker will gracefully fail the task, queue it for retry, and eventually route it to the Dead Letter Queue.*
+*If fallback provider keys are missing, the worker will exhaust retries and route the notification to the Dead Letter Queue for manual review.*
 
 ## API Reference
 
@@ -91,12 +122,17 @@ Check the current status of a queued notification.
   "id": "uuid-here",
   "status": "sent",
   "recipient": "user@example.com",
-  "provider_used": "sendgrid",
+  "provider_used": "ses",
   "error_message": null,
-  "created_at": "2026-05-25T10:00:00Z",
-  "updated_at": "2026-05-25T10:00:05Z"
+  "created_at": "2026-05-26T09:00:00Z",
+  "updated_at": "2026-05-26T09:00:02Z"
 }
 ```
+
+### 3. Health Check
+**`GET /health`**
+
+Returns service health status.
 
 ## Running Tests
 
@@ -108,7 +144,19 @@ make test-local
 pytest tests/ -v
 ```
 
-To run tests inside the Docker container against the full environment:
+To run tests inside the Docker container:
 ```bash
 make test
 ```
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| API Framework | FastAPI |
+| Task Queue | Celery + Redis |
+| Database | PostgreSQL 18 |
+| Primary Email Provider | AWS SES |
+| Fallback Email Provider | Postmark |
+| Containerization | Docker Compose |
+| Hosting | AWS EC2 (t2.micro, Free Tier) |

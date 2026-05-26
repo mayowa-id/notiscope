@@ -1,4 +1,5 @@
 .env
+.env.example
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,4 +20,4 @@ celerybeat.pid
 .DS_Store
 Thumbs.db
 notiscope-key.pem
-
+accesskeys.md

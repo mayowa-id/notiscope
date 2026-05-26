@@ -14,6 +14,8 @@ At scale, notification systems fail in predictable ways. Workers crash after sen
 
 ## Architecture Overview
 
+![Notiscope Architecture Diagram](docs/assets/Excalidraw-Screenshot.png)
+
 ```
 Caller → POST /notify → FastAPI → PostgreSQL (pending) + Redis (lock)
                                         ↓
@@ -98,7 +100,7 @@ Every request carries a caller-supplied idempotency key. A Redis lock is acquire
 Notifications are written to PostgreSQL before anything is enqueued. If the worker crashes after sending but before confirming, the notification is still in `processing` state in the database. A recovery job picks up stale processing records and re-queues them. The idempotency key prevents a double send on the re-queue.
 
 ### Graceful degradation
-The provider manager tries SendGrid first. On any failure — timeout, rate limit, provider outage — it falls back to AWS SES automatically without the worker retrying. If SES also fails the worker retries the whole flow with exponential backoff. After the retry limit is hit the notification moves to the dead letter queue with full error context preserved.
+The provider manager tries AWS SES first. On any failure — timeout, rate limit, provider outage — it falls back to Postmark automatically without the worker retrying. If Postmark also fails the worker retries the whole flow with exponential backoff. After the retry limit is hit the notification moves to the dead letter queue with full error context preserved.
 
 ---
 

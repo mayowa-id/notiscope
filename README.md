@@ -44,6 +44,13 @@ Read the full system design in the [Technical Specification](tech-spec.md).
 
 The API is deployed on an AWS EC2 instance running the full Docker Compose stack (FastAPI + Celery Worker + Celery Beat + PostgreSQL 18 + Redis 7).
 
+### Deployment
+*(Reviewer note: This system is fully deployed on AWS infrastructure.)*
+
+![AWS EC2 Instance Running](ec2-screenshot.png)
+![Successful Email Delivery](email-screenshot.png)
+
+
 ## Quick Start (Local Development)
 
 **1. Clone the repository**

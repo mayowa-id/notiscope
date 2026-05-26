@@ -28,10 +28,9 @@ class Settings(BaseSettings):
     celery_task_soft_time_limit: int = 60
     celery_task_time_limit: int = 90
 
-    # SendGrid
-    sendgrid_api_key: str = ""
-    sendgrid_from_email: str = "noreply@notiscope.dev"
-    sendgrid_from_name: str = "Notiscope"
+    # Postmark (Fallback Email Provider)
+    postmark_server_token: str = ""
+    postmark_from_email: str = "noreply@notiscope.dev"
 
     # AWS SES
     aws_access_key_id: str = ""

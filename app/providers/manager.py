@@ -76,11 +76,13 @@ def build_provider_manager() -> ProviderManager:
     """
     Factory function. Import this instead of constructing ProviderManager directly.
     This is the single place to swap providers.
+
+    Provider chain: AWS SES (primary) -> Postmark (fallback)
     """
-    from app.providers.sendgrid import SendGridProvider
     from app.providers.ses import SESProvider
+    from app.providers.postmark import PostmarkProvider
 
     return ProviderManager(
-        primary=SendGridProvider(),
-        fallback=SESProvider(),
+        primary=SESProvider(),
+        fallback=PostmarkProvider(),
     )

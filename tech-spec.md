@@ -23,7 +23,7 @@ Caller → POST /notify → FastAPI → PostgreSQL (pending) + Redis (lock)
                           ↓
                   Check idempotency key (PostgreSQL)
                           ↓
-               Provider Manager (SendGrid → SES fallback)
+               Provider Manager (SES primary → Postmark fallback)
                           ↓
                   Write status back to PostgreSQL
                           ↓
@@ -53,9 +53,9 @@ Serves two roles. As a Celery broker it queues tasks between the API and the wor
 Each worker picks up a notification task, checks the idempotency key in PostgreSQL, calls the provider manager, writes the result back, and stores the idempotency record. Retries with exponential backoff on failure. Gives up after a configurable maximum and routes to the dead letter queue.
 
 ### Provider Manager (Delivery Abstraction)
-Sits between the worker and the actual email providers. Tries SendGrid first. On failure logs the error and tries AWS SES. If both fail raises an exception back to the worker to trigger retry. Neither provider knows about the other.
+Sits between the worker and the actual email providers. Tries AWS SES first. On failure logs the error and tries Postmark. If both fail raises an exception back to the worker to trigger retry. Neither provider knows about the other.
 
-**Why two providers:** The graceful degradation requirement is not just about retrying the same provider. If SendGrid has an outage, retrying SendGrid ten times is not graceful degradation. SES as a fallback is.
+**Why two providers:** The graceful degradation requirement is not just about retrying the same provider. If SES has an outage, retrying SES ten times is not graceful degradation. Postmark as a fallback is.
 
 ### Dead Letter Queue
 Any notification that exhausts all retries across both providers lands here. The DLQ handler logs the full context — notification id, recipient, all error payloads — and alerts. Nothing is silently dropped.
@@ -106,7 +106,7 @@ The provider manager tries SendGrid first. On any failure — timeout, rate limi
 
 | Scenario | System behaviour |
 
-| SendGrid is down | Provider manager falls back to SES automatically |
+| AWS SES is down | Provider manager falls back to Postmark automatically |
 | Both providers are down | Worker retries with exponential backoff, then routes to DLQ |
 | Worker crashes mid-send | Notification stays in processing, recovery job re-queues it, idempotency prevents double send |
 | Duplicate request arrives | Redis lock blocks it at the door, DB unique constraint catches anything that slips through |
@@ -127,10 +127,10 @@ The provider manager tries SendGrid first. On any failure — timeout, rate limi
 | Broker | Redis | Fast, simple Celery integration |
 | Lock store | Redis | Short-lived distributed locks |
 | Database | PostgreSQL | ACID, unique constraints |
-| Email primary | SendGrid | Reliable, good free tier |
-| Email fallback | AWS SES | Cheap, independent infrastructure |
+| Email primary | AWS SES | Cheap, reliable, scalable primary |
+| Email fallback | Postmark | High deliverability fallback |
 | Containerisation | Docker Compose | Consistent local and production environment |
-| Deployment | Railway | Docker Compose native, fast setup |
+| Deployment | AWS EC2 (t2.micro) | Full control, runs entire stack |
 
 ---
 

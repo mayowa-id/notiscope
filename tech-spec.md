@@ -176,4 +176,4 @@ Poll the delivery status of a notification.
 
 ## Out of Scope (v1)
 
-SMS and push notifications are intentionally excluded from v1. The provider abstraction is designed to support them — adding a channel is a matter of adding a new worker and a new provider implementation without touching existing code.
+SMS and push notifications are intentionally excluded from v1. The provider abstraction is designed to support them, adding a channel is a matter of adding a new worker and a new provider implementation without touching existing code.

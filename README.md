@@ -141,6 +141,9 @@ Check the current status of a queued notification.
 
 Returns service health status.
 
+Live Email Capture Testing
+In addition to the automated test suite, the full notification pipeline was validated end- using Mailpit as a local mail capture tool. This involved firing real POST /notify requests and confirming delivery, idempotency enforcement, retry logic, provider fallback, and DLQ routing — all observable in the Mailpit UI without sending live emails.
+
 ## Running Tests
 
 To run the test suite locally (uses an in-memory SQLite database):

@@ -71,7 +71,7 @@ docker compose up --build
 ```
 Database migrations run automatically on startup via the entrypoint script.
 
-The API will be available at [http://localhost:8000/docs](http://localhost:8000/docs).
+The API will be available at  [http://localhost:8000/docs](http://localhost:8000/docs).
 
 ## Environment Variables
 

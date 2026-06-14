@@ -168,4 +168,4 @@ make test
 | Primary Email Provider | AWS SES |
 | Fallback Email Provider | Postmark |
 | Containerization | Docker Compose |
-| Hosting | AWS EC2 (t2.micro, Free Tier) |
+| Hosting | AWS EC2 |

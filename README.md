@@ -95,6 +95,7 @@ The API will be available at  [http://localhost:8000/docs](http://localhost:8000
 ### 1. Send Notification
 **`POST /notify`**
 
+
 Queues a notification for delivery. Requires an `Idempotency-Key` header to prevent duplicate sends.
 
 **Headers:**
